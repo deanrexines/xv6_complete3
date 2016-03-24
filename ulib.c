@@ -3,6 +3,7 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
+#include "signal.h"
 
 char*
 strcpy(char *s, char *t)
@@ -102,4 +103,21 @@ memmove(void *vdst, void *vsrc, int n)
   while(n-- > 0)
     *dst++ = *src++;
   return vdst;
+}
+
+void trampoline();
+
+__asm__(".globl trampoline");
+__asm__("trampoline:");
+__asm__("popl %edx");
+__asm__("popl %edx");
+__asm__("popl %ecx");
+__asm__("popl %eax");
+__asm__("ret");
+
+sighandler_t reg_signal(int signum, sighandler_t handler, void (* func)(void));
+
+sighandler_t
+signal(int signum, sighandler_t handler) {
+    return register_signal_handler(signum, handler, &trampoline);
 }
