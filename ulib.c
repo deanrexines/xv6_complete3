@@ -115,7 +115,7 @@ __asm__("popl %ecx");
 __asm__("popl %eax");
 __asm__("ret");
 
-sighandler_t reg_signal(int signum, sighandler_t handler, void (* func)(void));
+sighandler_t register_signal_handler(int signum, sighandler_t handler, void (* func)(void));
 
 sighandler_t
 signal(int signum, sighandler_t handler) {

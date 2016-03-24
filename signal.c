@@ -11,8 +11,5 @@ main(int argc, char *argv[])
     printf(1, "Calling system call signal\n");
     //signal();
     signal(SIGFPE, &func);
-    int sum = 1;
-    --sum;
-    sum = 1 / sum;
     exit(); // Try return next
 }

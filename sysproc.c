@@ -123,19 +123,18 @@ sys_register_signal_handler(void)
     return prev;
 }
 
-// Register an alarm for the process.
-// Any new alarm overwrites any previously scheduled alarm.
-// Returns: 0 on success, -1 on error
+// New alarm for a process (overwrites any running one if existing)
+// Return 0 on success, -1 on error
 int
 sys_alarm(void)
 {
-    int s;
-    if (argint(0, &s) < 0) {
+    int sec;
+    if (argint(0, &sec) < 0) {
         cprintf("Argument error\n");
         return -1;
     }
-    if (s > 0) {
-        proc->ticks = s*100;
+    if (sec > 0) {
+        proc->ticks = sec*100;
     } else {
         return -1;
     }

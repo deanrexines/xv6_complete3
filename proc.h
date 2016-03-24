@@ -1,5 +1,5 @@
 #include "signal.h"
-// Segments in proc->gdt.
+// Segments in proc->gdt
 #define NSEGS     7
 
 // Per-CPU state

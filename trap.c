@@ -97,23 +97,10 @@ trap(struct trapframe *tf)
     break;
 
     case T_DIVIDE:
-   cprintf("Divide by 0 exception\n");
+    cprintf("Divide by 0 exception\n");
     // Check if the process has a SIGFPE handler
     if (!(proc->sighandlers[SIGFPE] < 0)) {
-        cprintf("We found the signal handler!");
-        // TODO: save original user process state
-        //siginfo_t info;
-        //info.signum = SIGFPE;
-        //int decr = 0;
-
-        // Set signal info as parameter 
-        //decr += sizeof(siginfo_t);
-        //*((siginfo_t *)(tf->esp - decr)) = info;
-        // Set return eip to trap frame eip
-        //decr += 4;
-        //*((uint *)(tf->esp - decr)) = tf->eip;
-        //tf->esp-=decr;
-        //tf->eip = (uint) proc->sighandlers[SIGFPE];
+        cprintf("Signal handler here");
         send_signal(tf, SIGFPE);
 
         break;
@@ -149,36 +136,14 @@ trap(struct trapframe *tf)
     send_signal(tf, SIGALRM);
   }
 
-  // Force process exit if it has been killed and is in user space.
-  // (If it is still executing in the kernel, let it keep running 
-  // until it gets to the regular system call return.)
+  // Process exit if it has been killed and in user space
+  // (If still in the kernel, let it keep running 
+  // until it returns with a system call)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-void send_signal(struct trapframe *tf, int signum) {
-    cprintf("send signal called\n");
-    siginfo_t info;
-    info.signum = signum;
-    int decr = 0;
-    // Save volatile registers in user stack
-    // decr += sizeof(uint);
-    // *((uint *)(tf->esp - decr)) = tf->eax;
-    // decr += sizeof(uint);
-    // *((uint *)(tf->esp - decr)) = tf->ecx;
-    // decr += sizeof(uint);
-    // *((uint *)(tf->esp - decr)) = tf->edx;
-
-    // Set signal info as parameter
-    decr += sizeof(siginfo_t);
-    *((siginfo_t *)(tf->esp - decr)) = info;
-    // Set return eip to trap frame eip
-    decr += 4;
-    *((uint *)(tf->esp - decr)) = tf->eip;
-    tf->esp-=decr;
-    tf->eip = (uint) proc->sighandlers[signum];
-}
-
-  void send_signal(struct trapframe *tf, int signum) {
+  void 
+  send_signal(struct trapframe *tf, int signum) {
     siginfo_t info;
     info.signum = signum;
     int decr = 0;
@@ -191,7 +156,6 @@ void send_signal(struct trapframe *tf, int signum) {
     decr += sizeof(uint);
     *((uint *)(tf->esp - decr)) = tf->edx;
 
-    // Set signal info as parameter
     decr += sizeof(siginfo_t);
     *((siginfo_t *)(tf->esp - decr)) = info;
     decr += 4;
@@ -206,7 +170,7 @@ void send_signal(struct trapframe *tf, int signum) {
   if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
 
-  // Check if the process has been killed since we yielded
+  // Check if the process has been killed since (supposed to be) yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 }

@@ -3,11 +3,6 @@
 #include "user.h"
 #include "signal.h"
 
-void handle_signal(siginfo_t info)
-{
-
-}
-
 int main(int argc, char *argv[])
 {
 	signal(SIGFPE, handle_signal);
