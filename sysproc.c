@@ -103,23 +103,32 @@ sys_halt(void)
   return 0;
 }
 
-//function to send a signal
-int
+// Register a signal handler
+sighandler_t
 sys_register_signal_handler(void)
 {
-
     int sig;
     sighandler_t handler;
     void (*tramp)(void);
-    // get the signal from the first argument
-    
+    // get the signal from arg
+    /*
+    cprintf("In sys_signal\n");
+    int i;
+    for (i = 0; i < 8; i++) {
+        if (argint(i, &sig) < 0) {
+            cprintf("argint failed\n");
+        }
+        cprintf("argint %d %d\n", i, sig);
+    }
+    */
     if (argint(0, &sig) < 0 || argint(1, (int *)&handler) < 0 || argint(2, (int *)&tramp)) {
-        cprintf("Argument error\n");
         return (sighandler_t)-1;
     }
+    //cprintf("Got args! %d %x\n", sig, handler);
     sighandler_t prev = proc->sighandlers[sig];
     proc->tramp = tramp;
     proc->sighandlers[sig] = handler;
+    //cprintf("Signal handler set.\n");
     return prev;
 }
 

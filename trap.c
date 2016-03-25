@@ -54,6 +54,7 @@ trap(struct trapframe *tf)
       ticks++;
       wakeup(&ticks);
       release(&tickslock);
+      
       extern struct {
         struct spinlock lock;
         struct proc proc[NPROC];
@@ -97,16 +98,28 @@ trap(struct trapframe *tf)
     break;
 
     case T_DIVIDE:
-    cprintf("Divide by 0 exception\n");
+    cprintf("Exception: divide by 0\n");
     // Check if the process has a SIGFPE handler
     if (!(proc->sighandlers[SIGFPE] < 0)) {
-        cprintf("Signal handler here");
-        send_signal(tf, SIGFPE);
+        //cprintf("Signal handler *here*");
+        /*
+        siginfo_t info;
+        info.signum = SIGFPE;
+        int decr = 0;
 
+        // Set signal info as parameter 
+        decr += sizeof(siginfo_t);
+        *((siginfo_t *)(tf->esp - decr)) = info;
+        // Set return eip to trap frame eip
+        decr += 4;
+        *((uint *)(tf->esp - decr)) = tf->eip;
+        tf->esp-=decr;
+        tf->eip = (uint) proc->sighandlers[SIGFPE];
+        */
+        send_signal(tf, SIGFPE);
         break;
     }
     cprintf("No signal handler found\n");
-    // If not let it fall through
   
   //PAGEBREAK: 13
   default:
@@ -124,10 +137,8 @@ trap(struct trapframe *tf)
     proc->killed = 1;
   }
 
-  // Please figure out how this works
   if (proc != 0 && proc->state == RUNNING && proc->alarm > 0 && (tf->cs&3) == DPL_USER ) {
     proc->alarm = 0;
-    cprintf("sending signal\n");
     send_signal(tf, SIGALRM);
   }
 
@@ -142,29 +153,6 @@ trap(struct trapframe *tf)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  void 
-  send_signal(struct trapframe *tf, int signum) {
-    siginfo_t info;
-    info.signum = signum;
-    int decr = 0;
-    decr += sizeof(uint);
-    *((uint *)(tf->esp - decr)) = tf->eip;
-    decr += sizeof(uint);
-    *((uint *)(tf->esp - decr)) = tf->eax;
-    decr += sizeof(uint);
-    *((uint *)(tf->esp - decr)) = tf->ecx;
-    decr += sizeof(uint);
-    *((uint *)(tf->esp - decr)) = tf->edx;
-
-    decr += sizeof(siginfo_t);
-    *((siginfo_t *)(tf->esp - decr)) = info;
-    decr += 4;
-    *((uint *)(tf->esp - decr)) = (uint) proc->tramp;
-    tf->esp-=decr;
-    tf->eip = (uint) proc->sighandlers[signum];
-}
-
-
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
   if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
@@ -174,3 +162,27 @@ trap(struct trapframe *tf)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 }
+
+  //to save volatile registers?
+ void send_signal(struct trapframe *tf, int signum) {
+     siginfo_t info;
+     info.signum = signum;
+     int decr = 0;
+     // Save volatile registers in user stack
+    decr += sizeof(uint);
+    *((uint *)(tf->esp - decr)) = tf->eip;
+    decr += sizeof(uint);
+    *((uint *)(tf->esp - decr)) = tf->eax;
+    decr += sizeof(uint);
+    *((uint *)(tf->esp - decr)) = tf->ecx;
+    decr += sizeof(uint);
+    *((uint *)(tf->esp - decr)) = tf->edx;
+ 
+     // Set signal info as parameter
+     decr += sizeof(siginfo_t);
+     *((siginfo_t *)(tf->esp - decr)) = info;
+     decr += 4;
+     *((uint *)(tf->esp - decr)) = (uint) proc->tramp;
+     tf->esp-=decr;
+     tf->eip = (uint) proc->sighandlers[signum];
+ }
